@@ -16,7 +16,8 @@ ENV JAVA_VERSION_MAJOR=8 \
     GLIBC_VERSION=2.27-r0 \
     LANG=C.UTF-8 \
     MAVEN_HOME=/opt/maven \
-    MAVEN_CONFIG="$USER_HOME_DIR/.m2"
+    MAVEN_CONFIG="$USER_HOME_DIR/.m2" \
+    PATH=$MAVEN_HOME/bin:$PATH
 
 RUN apk -U upgrade && \
     apk add libstdc++ curl ca-certificates bash && \
@@ -87,5 +88,8 @@ RUN apk -U upgrade && \
            /tmp/* /var/cache/apk/* && \
     echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf && \
     mkdir -p /opt/app
+
+CMD ["mvn --version"]
+CMD ["java -version"]
 
 WORKDIR /opt/app
