@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.7
 
 ARG MAVEN_VERSION=3.5.2
 ARG USER_HOME_DIR="/root"
@@ -9,14 +9,12 @@ ENV JAVA_VERSION_MAJOR=8 \
     JAVA_VERSION_MINOR=162 \
     JAVA_VERSION_BUILD=12 \
     JAVA_PACKAGE=jdk \
-    JAVA_JCE=standard \
     JAVA_HOME=/opt/jdk \
     GLIBC_REPO=https://github.com/sgerrand/alpine-pkg-glibc \
     GLIBC_VERSION=2.27-r0 \
     LANG=C.UTF-8 \
     MAVEN_HOME=/opt/maven \
-    MAVEN_CONFIG="$USER_HOME_DIR/.m2" \
-    PATH=${PATH}:/opt/jdk/bin
+    MAVEN_CONFIG="$USER_HOME_DIR/.m2"
 
 RUN set -ex && \
     [[ ${JAVA_VERSION_MAJOR} != 7 ]] || ( echo >&2 'Oracle no longer publishes JAVA7 packages' && exit 1 ) && \
@@ -28,8 +26,6 @@ RUN set -ex && \
     ( /usr/glibc-compat/bin/localedef --force --inputfile POSIX --charmap UTF-8 C.UTF-8 || true ) && \
     echo "export LANG=C.UTF-8" > /etc/profile.d/locale.sh && \
     /usr/glibc-compat/sbin/ldconfig /lib /usr/glibc-compat/lib && \
-    mkdir /tmp/dcevm && \
-    curl -L -o /tmp/dcevm/DCEVM-8u144-installer.jar "https://github.com/dcevm/dcevm/releases/download/light-jdk8u144%2B2/DCEVM-8u144-installer.jar" && \
     mkdir /opt && \
     curl -jksSLH "Cookie: oraclelicense=accept-securebackup-cookie" -o /tmp/java.tar.gz \
       http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/0da788060d494f5095bf8624735fa2f1/${JAVA_PACKAGE}-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz && \
@@ -38,12 +34,7 @@ RUN set -ex && \
     sha256sum -c /tmp/java.tar.gz.sha256 && \
     gunzip /tmp/java.tar.gz && \
     tar -C /opt -xf /tmp/java.tar && \
-    ls && \
     ln -s /opt/jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR} /opt/jdk && \
-    cd /tmp/dcevm && \
-    unzip DCEVM-8u144-installer.jar && \
-    mkdir -p /opt/jdk/jre/lib/amd64/dcevm && \
-    cp linux_amd64_compiler2/product/libjvm.so /opt/jdk/jre/lib/amd64/dcevm/libjvm.so && \
     sed -i s/#networkaddress.cache.ttl=-1/networkaddress.cache.ttl=10/ $JAVA_HOME/jre/lib/security/java.security && \
     curl -L -o $MAVEN_FILE $MAVEN_URL && \
     mkdir -p $MAVEN_HOME && \
@@ -82,9 +73,10 @@ RUN set -ex && \
            /opt/jdk/jre/lib/oblique-fonts \
            /opt/jdk/jre/lib/plugin.jar \
            /tmp/* /var/cache/apk/* && \
-    echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf && \
+    echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf \
     mkdir -p /opt/app
 
+ENV PATH=${PATH}:/opt/jdk/bin
 ENV PATH=${PATH}:$MAVEN_HOME/bin
 
 RUN java -version && mvn --version
