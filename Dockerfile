@@ -1,10 +1,5 @@
 FROM alpine:3.7
 
-ARG MAVEN_VERSION=3.5.2
-ARG USER_HOME_DIR="/root"
-ARG MAVEN_FILE=apache-maven-$MAVEN_VERSION'-bin.tar.gz'
-ARG MAVEN_URL=http://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/$MAVEN_FILE
-
 ENV JAVA_VERSION_MAJOR=8 \
     JAVA_VERSION_MINOR=162 \
     JAVA_VERSION_BUILD=12 \
@@ -12,14 +7,11 @@ ENV JAVA_VERSION_MAJOR=8 \
     JAVA_HOME=/opt/jdk \
     GLIBC_REPO=https://github.com/sgerrand/alpine-pkg-glibc \
     GLIBC_VERSION=2.27-r0 \
-    LANG=C.UTF-8 \
-    MAVEN_HOME=/opt/maven \
-    MAVEN_CONFIG="$USER_HOME_DIR/.m2"
+    LANG=C.UTF-8
 
 RUN set -ex && \
-    [[ ${JAVA_VERSION_MAJOR} != 7 ]] || ( echo >&2 'Oracle no longer publishes JAVA7 packages' && exit 1 ) && \
     apk -U upgrade && \
-    apk add libstdc++ curl ca-certificates bash && \
+    apk add libstdc++ curl ca-certificates bash mc && \
     for pkg in glibc-${GLIBC_VERSION} glibc-bin-${GLIBC_VERSION} glibc-i18n-${GLIBC_VERSION}; do curl -sSL ${GLIBC_REPO}/releases/download/${GLIBC_VERSION}/${pkg}.apk -o /tmp/${pkg}.apk; done && \
     apk add --allow-untrusted /tmp/*.apk && \
     rm -v /tmp/*.apk && \
@@ -36,10 +28,6 @@ RUN set -ex && \
     tar -C /opt -xf /tmp/java.tar && \
     ln -s /opt/jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR} /opt/jdk && \
     sed -i s/#networkaddress.cache.ttl=-1/networkaddress.cache.ttl=10/ $JAVA_HOME/jre/lib/security/java.security && \
-    curl -L -o $MAVEN_FILE $MAVEN_URL && \
-    mkdir -p $MAVEN_HOME && \
-    tar -xzf $MAVEN_FILE -C $MAVEN_HOME --strip-components=1 && \
-    rm -f $MAVEN_FILE && \
     apk del curl glibc-i18n && \
     rm -rf /opt/jdk/*src.zip \
            /opt/jdk/lib/missioncontrol \
@@ -73,12 +61,7 @@ RUN set -ex && \
            /opt/jdk/jre/lib/oblique-fonts \
            /opt/jdk/jre/lib/plugin.jar \
            /tmp/* /var/cache/apk/* && \
-    echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf \
-    mkdir -p /opt/app
+    echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf
 
 ENV PATH=${PATH}:/opt/jdk/bin
-ENV PATH=${PATH}:$MAVEN_HOME/bin
-
-RUN java -version && mvn --version
-
-WORKDIR /opt/app
+RUN java -version
